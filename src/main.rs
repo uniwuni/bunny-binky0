@@ -1,24 +1,23 @@
 mod check;
 mod data;
-mod parse;
 mod find;
+mod parse;
 
 use std::{
-    fs, fs::File, path::Path,
-    time,
+    fs,
+    fs::File,
     io::{self, prelude::*, BufReader},
+    path::Path,
+    time,
 };
 
-use data::Direction;
+use data::display_commands;
 
-fn eval<P>(path: P) -> (String,usize)
+fn eval<P>(path: P) -> (String, usize)
 where
-    P: AsRef<Path> + std::fmt::Debug, {
-    println!("{:?}", path);
-    let lines_: io::Result<Vec<_>> =
-            BufReader::new(File::open(path).unwrap())
-        .lines()
-        .collect();
+    P: AsRef<Path> + std::fmt::Debug,
+{
+    let lines_: io::Result<Vec<_>> = BufReader::new(File::open(path).unwrap()).lines().collect();
     let lines = lines_.unwrap();
     let task = parse::parse(lines);
     match task {
@@ -26,54 +25,65 @@ where
             field,
             commands,
             player,
-        } => {
-            match check::potential_unvisited(&field, &commands, player) {
-                check::VisitResult::AllVisitedIn(n) => {eprintln!("{} steps",n); ("GOOD PLAN\n".to_string(),0)},
-                check::VisitResult::Missing(hash_set) => {
-                    let mut s: String = "BAD PLAN\n".to_string();
-                    for data::Pos(x,y) in hash_set {
-                        s += &format!("{}, {}\n", x, y);
-                    }
-                    eprintln!("{}",s);
-                    (s,0)
-                }
+        } => match check::potential_unvisited(&field, &commands, player) {
+            check::VisitResult::AllVisitedIn(n) => {
+                ("GOOD PLAN\n".to_string(), 0)
             }
-        }
-        ,
-        data::Task::FindTask { player, field } => {
-            eprintln!("VISIT TEST");
-            let (commands, commands_full) = find::concatenate_strategies(&field, player, 1, 1, 10000);
-            match check::potential_unvisited(&field, &commands, player) {
-                check::VisitResult::AllVisitedIn(n) => {println!("{} steps",n); ("GOOD PLAN\n".to_string(),n)},
-                check::VisitResult::Missing(_) => {
-
-                    match check::potential_unvisited(&field, &commands_full, player) {
-                        check::VisitResult::AllVisitedIn(n) => {println!("{} steps non-min",n); ("GOOD PLAN\n".to_string(),n)},
-                        check::VisitResult::Missing(hash_set) => todo!(),
-                    }
+            check::VisitResult::Missing(hash_set) => {
+                let mut s: String = "BAD PLAN\n".to_string();
+                for data::Pos(x, y) in hash_set {
+                    s += &format!("{}, {}\n", x, y);
                 }
+                (s, 0)
             }
         },
+        data::Task::FindTask { player, field } => {
+            let (commands_shortened, commands_full) =
+                find::concatenate_strategies(&field, player, 1, 1, 10000);
+            let (cmds, n) = match check::potential_unvisited(&field, &commands_shortened, player) {
+                check::VisitResult::AllVisitedIn(n) => (commands_shortened, n),
+                check::VisitResult::Missing(_) => {
+                    match check::potential_unvisited(&field, &commands_full, player) {
+                        check::VisitResult::AllVisitedIn(n) => (commands_full, n),
+                        check::VisitResult::Missing(_) => panic!("did not find path???"),
+                    }
+                }
+            };
+            (display_commands(cmds), n)
+        }
     }
 }
 
 fn main() {
-/*    let mut dirs1 = vec![Direction::Left, Direction::Right, Direction::Right];
+    /*    let mut dirs1 = vec![Direction::Left, Direction::Right, Direction::Right];
     let dirs2 = vec![Direction::Left, Direction::Right];
     eprintln!("{:?}\n", find::generate_commands(&dirs1, Direction::Right));
 
     dirs1.extend(dirs2);
     eprintln!("{:?}\n", find::generate_commands(&dirs1, Direction::Right));
     panic!();*/
-    let paths = fs::read_dir("/home/uni/workspace/resources/ai1sysproj/assignment0/assignment/example-problems").unwrap();
+    let args: Vec<_> = std::env::args().collect();
+    if args.len() < 3 {
+        panic!("call as: assignment0 <folder with input problems> <folder for solution outputs>");
+    }
+    let input_folder = &args[1];
+    let output_folder = &args[2];
+    let paths = fs::read_dir(input_folder).expect("Input path does not exist/is unreadable");
     let now = time::Instant::now();
     let mut sum = 0;
     let mut max_ = 0;
-    for filename in paths {
-    let n = eval(filename.expect("path io error!").path()).1;
-    max_ = max_.max(n);
-    sum +=n;
-
+    for entry in paths {
+        let filename : String = entry.as_ref().map(|n| n.file_name().into_string()).expect("path error").expect("path error");
+        let stripped = filename.strip_prefix("problem").expect("non problem file in folder");
+        let mut output_path = Path::new(output_folder).to_owned();
+        let input_path = entry.expect("dir issue").path();
+        output_path.push("solution".to_owned() + stripped);
+        println!("input {:?}", input_path);
+        println!("output {:?}", output_path);
+        let (res, n) = eval(input_path);
+        max_ = max_.max(n);
+        sum += n;
+        fs::write(output_path, res).expect("cannot write to solution file");
     }
     eprintln!("{} steps total, {} max", sum, max_);
     eprintln!("Elapsed total: {:.2?}", now.elapsed());

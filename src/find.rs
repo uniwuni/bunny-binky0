@@ -1,5 +1,4 @@
 use rand::prelude::*;
-use std::collections::HashSet;
 
 use crate::data::*;
 use crate::check::*;
@@ -27,8 +26,6 @@ pub fn generate_commands(dirs: &Vec<Direction>, dir: Direction) -> Vec<Command> 
     commands
 }
 
-//pub fn apply_commands(field: &Field, commands: &[Command], player: WeakPlayer) ->
-
 pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usize, minimum_new_added: usize, max: usize) -> (Vec<Command>,Vec<Command>){
     let mut players: Vec<Player> = match player.dir {
         Some(dir) => vec![Player {pos: player.pos, dir}],
@@ -55,6 +52,7 @@ pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usi
         let mut commands;
         let mut directions;
         let mut block_size = block_size;
+
         'outer: loop {
         let real_attempts_before_increase = 8<<((2*block_size).min(11));
         for _ in 0..real_attempts_before_increase {
@@ -62,14 +60,9 @@ pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usi
             commands = generate_commands(&directions, players[0].dir);
             let mut score = 0;
             for i in 0..players.len() {
-//                println!("pos {} {:?}", i, players[i].pos);
                 let (res, new_player) = unvisited(field, results[i].clone().to_hashset(), &commands, players[i]);
                 new_players[i] = new_player;
                 score += results[i].score(&res);
-  //              if score > 0 {
-  //              println!("{}",score);
-  //              }
-                //eprintln!("{}, {:?}, {:?}", i, res, new_player);
                 new_results[i] = res;
 
             }
@@ -92,6 +85,7 @@ pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usi
 
 }
 
+// doesnt always work because if there is a wall to your left, LRL adds another field to your visited list
 pub fn minimize_dirs(dirs: Vec<Direction>) -> Vec<Direction> {
     let mut i = 0;
     let mut newdirs = vec![];

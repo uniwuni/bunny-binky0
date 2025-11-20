@@ -146,3 +146,14 @@ pub enum Task {
     CheckTask { field: Field, commands: Vec<Command>, player: WeakPlayer },
     FindTask { field: Field, player: WeakPlayer }
 }
+
+fn display_command(command: Command) -> char {
+    match command {
+        Command::TurnLeft => 'L',
+        Command::TurnRight => 'R',
+        Command::Move => 'M',
+    }
+}
+pub fn display_commands(commands: Vec<Command>) -> String {
+    commands.into_iter().map(display_command).collect()
+}
