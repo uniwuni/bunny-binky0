@@ -42,26 +42,16 @@ impl VisitResult {
     }
 }
 
-// IGNORES movement
-fn turn_player<T>(commands: T, player: Player) -> Player
-    where T:Iterator<Item=Command> {
-    let mut player = player;
-    for command in commands {
-        player.dir = player.dir.apply_command(command);
-    }
-    player
-}
-
 pub fn unvisited(field: &Field, relative: Option<HashSet<Pos>>, commands: &[Command], player: Player) -> (VisitResult, Player) {
     let mut unv = relative.unwrap_or(HashSet::new());
     let mut player = player;
     let mut steps = 0;
-    let finalsteps;
-    let mut commands_iter = commands.into_iter();
-    for command in commands_iter.by_ref() {
-        unv.remove(&player.pos);
+    let mut finalsteps = 0;
+    for command in commands {
         if unv.is_empty() {
-            return (VisitResult::AllVisitedIn(steps), turn_player(commands_iter.copied(), player));
+            finalsteps = steps;
+        } else {
+            unv.remove(&player.pos);
         }
         player = field.command(player, *command);
         steps += 1;
@@ -69,7 +59,8 @@ pub fn unvisited(field: &Field, relative: Option<HashSet<Pos>>, commands: &[Comm
     }
     unv.remove(&player.pos);
     if unv.is_empty() {
-            return (VisitResult::AllVisitedIn(steps+1), turn_player(commands_iter.copied(), player));
+            if finalsteps == 0 { finalsteps = steps; }
+            return (VisitResult::AllVisitedIn(finalsteps), player);
     }
     (VisitResult::Missing(unv), player)
 }

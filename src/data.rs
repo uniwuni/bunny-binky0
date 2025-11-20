@@ -114,18 +114,14 @@ impl Index<Pos> for Field {
 }
 
 impl Field {
-    pub fn neighbors(&self, Pos(x,y): Pos) -> Vec<Pos> {
-        let possible = [Pos(x+1,y), Pos(x-1,y), Pos(x,y+1), Pos(x,y-1)];
-        possible.into_iter().filter(|&p| self[p] == FieldType::Free).collect()
-    }
     pub fn move_dir(&self, Pos(x,y): Pos, dir: Direction) -> Pos {
-        let newpos: Pos = self.normalize(match dir {
+        let newpos: Pos = match dir {
             Direction::Up => Pos(x,y-1),
             Direction::Down => Pos(x,y+1),
             Direction::Left => Pos(x-1,y),
             Direction::Right => Pos(x+1,y)
-        });
-        if self[newpos] == FieldType::Free { newpos } else { Pos(x,y) }
+        };
+        if self[newpos] == FieldType::Free { self.normalize(newpos) } else { Pos(x,y) }
     }
     pub fn command(&self, player: Player, command: Command) -> Player {
         let dir = player.dir.apply_command(command);

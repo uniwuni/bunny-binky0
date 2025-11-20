@@ -29,7 +29,7 @@ pub fn generate_commands(dirs: &Vec<Direction>, dir: Direction) -> Vec<Command> 
 
 //pub fn apply_commands(field: &Field, commands: &[Command], player: WeakPlayer) ->
 
-pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usize, minimum_new_added: usize, max: usize) -> Vec<Command>{
+pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usize, minimum_new_added: usize, max: usize) -> (Vec<Command>,Vec<Command>){
     let mut players: Vec<Player> = match player.dir {
         Some(dir) => vec![Player {pos: player.pos, dir}],
         None => vec![Player {pos: player.pos, dir: Direction::Right},
@@ -51,12 +51,12 @@ pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usi
 
     let mut new_results = results.clone();
 
-    while (&results).iter().any(|x| !x.all_visited()) && strategy.len() < max {
+    while (&results).iter().any(|x| !x.all_visited()) && dir_strategy.len() < max {
         let mut commands;
         let mut directions;
         let mut block_size = block_size;
         'outer: loop {
-        let real_attempts_before_increase = 30000.min(8<<(2*block_size));
+        let real_attempts_before_increase = 8<<((2*block_size).min(11));
         for _ in 0..real_attempts_before_increase {
             directions = generate_random_directions(block_size);
             commands = generate_commands(&directions, players[0].dir);
@@ -78,22 +78,18 @@ pub fn concatenate_strategies(field: &Field, player: WeakPlayer, block_size: usi
             }
         }
 
-            block_size = (block_size * 5) / 3 + 1; // experimental. * 2 would seem reasonable but yields worse results
+            block_size = (block_size * 3) / 2 + 1; // experimental. * 2 would seem reasonable but yields worse results
 
     }
         dir_strategy.extend(directions);
         strategy.extend(commands);
-        //strategy=generate_commands(&dir_strategy,old_dir);
+
         results = new_results.clone();
         players = new_players.clone();
-        //eprintln!("{}", block_size);
+
     }
-    //eprintln!("{:?}", strategy);
-    //eprintln!("{:?}", generate_commands(&dir_strategy.clone(),old_dir));
-    //generate_commands(&minimize_dirs(dir_strategy), old_dir)
-    eprintln!("{:?}", dir_strategy);
-    assert_eq!(generate_commands(&dir_strategy, old_dir), strategy);
-    strategy
+    (generate_commands(&minimize_dirs(dir_strategy), old_dir), strategy)
+
 }
 
 pub fn minimize_dirs(dirs: Vec<Direction>) -> Vec<Direction> {

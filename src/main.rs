@@ -42,16 +42,15 @@ where
         ,
         data::Task::FindTask { player, field } => {
             eprintln!("VISIT TEST");
-            let commands = find::concatenate_strategies(&field, player, 1, 1, 10000);
+            let (commands, commands_full) = find::concatenate_strategies(&field, player, 1, 1, 10000);
             match check::potential_unvisited(&field, &commands, player) {
                 check::VisitResult::AllVisitedIn(n) => {println!("{} steps",n); ("GOOD PLAN\n".to_string(),n)},
-                check::VisitResult::Missing(hash_set) => {
-                    let mut s: String = "BAD PLAN\n".to_string();
-                    eprintln!("joa scheiße1");
-                    for data::Pos(x,y) in hash_set {
-                        s += &format!("{}, {}\n", x, y);
+                check::VisitResult::Missing(_) => {
+
+                    match check::potential_unvisited(&field, &commands_full, player) {
+                        check::VisitResult::AllVisitedIn(n) => {println!("{} steps non-min",n); ("GOOD PLAN\n".to_string(),n)},
+                        check::VisitResult::Missing(hash_set) => todo!(),
                     }
-                    ("".to_string(),2032903)
                 }
             }
         },
